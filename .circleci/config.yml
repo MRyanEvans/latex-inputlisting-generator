@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: docker pull graze/bats
+      - image: graze/bats
     steps:
       - checkout
       - run:  chmod -R +x *.sh
