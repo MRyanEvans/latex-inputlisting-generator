@@ -62,7 +62,7 @@ while read -r f ; do
     command="\\lstinputlisting[${langString}label={lst:${label}}, caption={${caption}}]{${f}}"
     commands+=("${command}")
 
-done <<< ${files}
+done <<< "${files}"
 
 commands_as_string=$( IFS=$'\n'; echo "${commands[*]}" )
 
