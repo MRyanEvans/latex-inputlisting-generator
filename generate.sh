@@ -2,6 +2,23 @@
 
 usage() { echo "Usage: $0 [-o <string>] [-d <string string string ...>] [-e <string string string ...>] " 1>&2; exit 1; }
 
+constructLanguageOption() {
+    extension=$1
+
+    declare -A langMap
+    langMap=(
+        [sh]="Bash"
+        [php]="PHP"
+        [py]="Python"
+        [java]="Java"
+    )
+
+    lang=${langMap[${extension}]}
+    if [ ! -z "${lang}" ] ; then
+        printf "language=%s, " ${lang}
+    fi
+}
+
 while getopts ":o:d:e:" arg; do
     case "${arg}" in
         o)
@@ -32,13 +49,6 @@ files=$(find ${search_dir} \
     -regextype posix-extended -regex "^.*("${exts_or_concat}")$" \
      | sort | uniq)
 
-declare -A langMap
-langMap=(
-    [sh]="Bash"
-    [php]="PHP"
-    [py]="Python"
-    [java]="Java"
-)
 
 commands=()
 
@@ -52,14 +62,9 @@ while read -r f ; do
     label=$(echo ${name} | cut -d'.' -f1)
     extension=$(echo ${name} | awk -F . '{if (NF>1) {print $NF}}')
 
-    lang=${langMap[${extension}]}
-    if [ -z "${lang}" ] ; then
-        langString=""
-    else
-        langString="language=${lang}, "
-    fi
+    languageOption=$(constructLanguageOption ${extension})
 
-    command="\\lstinputlisting[${langString}label={lst:${label}}, caption={${caption}}]{${f}}"
+    command="\\lstinputlisting[${languageOption}label={lst:${label}}, caption={${caption}}]{${f}}"
     commands+=("${command}")
 
 done <<< "${files}"

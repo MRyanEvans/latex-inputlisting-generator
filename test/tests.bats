@@ -38,7 +38,7 @@ teardown() {
     testfile=temp.sh
     touch ${tmpdir}/${testfile}
     run ./generate.sh -d ${tmpdir} -e "sh"
-    grepped_output=$(echo ${output} | grep "language=Bash")
+    grepped_output=$(echo ${output} | grep "language=Bash, ")
     [ ! -z "${grepped_output}" ]
 }
 
