@@ -1,6 +1,48 @@
 #!/bin/bash
 
-usage() { echo "Usage: $0 [-o <string>] [-d <string string string ...>] [-e <string string string ...>] " 1>&2; exit 1; }
+printUsage() { echo "Usage: $0 [-o <string>] [-d <string string string ...>] [-e <string string string ...>] " 1>&2; exit 1; }
+
+constructLanguageOption() {
+    extension=$1
+
+    declare -A langMap
+    langMap=(
+        [sh]="Bash"
+        [php]="PHP"
+        [py]="Python"
+        [java]="Java"
+    )
+
+    lang=${langMap[${extension}]}
+    if [ ! -z "${lang}" ] ; then
+        printf "language=%s, " ${lang}
+    fi
+}
+
+findFilesByExtension() {
+    #Find all files within the given search directories which have the specified file extensions
+
+    extensionsPipeSeparated=$(echo "${extensions}" | tr ' ' '|')
+    find ${search_dir} \
+        -regextype posix-extended -regex "^.*("${extensionsPipeSeparated}")$" \
+         | sort  \
+         | uniq
+}
+
+constructListingTag() {
+    # Generate the \lstinputlisting tag from the given file path
+
+    path=$1
+
+    name=$(basename ${path})
+    caption=${name}
+    label=$(echo ${name} | cut -d'.' -f1)
+
+    extension=$(echo ${name} | awk -F . '{if (NF>1) {print $NF}}')
+    languageOption=$(constructLanguageOption ${extension})
+
+    echo "\\lstinputlisting[${languageOption}label={lst:${label}}, caption={${caption}}]{${path}}"
+}
 
 while getopts ":o:d:e:" arg; do
     case "${arg}" in
@@ -14,59 +56,29 @@ while getopts ":o:d:e:" arg; do
             extensions=${OPTARG}
             ;;
         *)
-            usage
+            printUsage
             ;;
     esac
 done
 shift $((OPTIND-1))
 
 if [ -z "${search_dir}" ] || [ -z "${extensions}" ] ; then
-    usage
+    printUsage
 fi
 
-# Concatenate extensions, separated by '|' to be used in the regex
-exts_or_concat=$(echo "${extensions}" | tr ' ' '|')
-
-# Recursively find all files in
-files=$(find ${search_dir} \
-    -regextype posix-extended -regex "^.*("${exts_or_concat}")$" \
-     | sort | uniq)
-
-declare -A langMap
-langMap=(
-    [sh]="Bash"
-    [php]="PHP"
-    [py]="Python"
-    [java]="Java"
-)
-
+files=$(findFilesByExtension)
 commands=()
 
 while read -r f ; do
     if [ -z "${f}" ] ; then
           continue
     fi
-
-    name=$(basename ${f})
-    caption=${name}
-    label=$(echo ${name} | cut -d'.' -f1)
-    extension=$(echo ${name} | awk -F . '{if (NF>1) {print $NF}}')
-
-    lang=${langMap[${extension}]}
-    if [ -z "${lang}" ] ; then
-        langString=""
-    else
-        langString="language=${lang}, "
-    fi
-
-    command="\\lstinputlisting[${langString}label={lst:${label}}, caption={${caption}}]{${f}}"
+    command=$(constructListingTag ${f})
     commands+=("${command}")
-
 done <<< "${files}"
 
-commands_as_string=$( IFS=$'\n'; echo "${commands[*]}" )
-
-if [ ! -z "${outfile}" ] && [ ! -z "${commands_as_string}" ] ; then
-    echo "${commands_as_string}" > ${outfile}
+commandsAsString=$( IFS=$'\n'; echo "${commands[*]}" )
+if [ ! -z "${outfile}" ] && [ ! -z "${commandsAsString}" ] ; then
+    echo "${commandsAsString}" > ${outfile}
 fi
-echo "${commands_as_string}"
+echo "${commandsAsString}"
